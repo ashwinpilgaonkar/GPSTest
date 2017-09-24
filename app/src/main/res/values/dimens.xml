@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="layout_padding">10dp</dimen>
+    <dimen name="view_line_height">1dp</dimen>
+    <dimen name="title_textSize">30sp</dimen>
+    <dimen name="title_padding">5dp</dimen>
+    <dimen name="detail_textSize">20sp</dimen>
+    <dimen name="status_text_paddingTop">10dp</dimen>
+    <dimen name="status_text_paddingBottom">5dp</dimen>
+</resources>
