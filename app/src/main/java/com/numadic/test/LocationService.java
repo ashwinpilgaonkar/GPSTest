@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.GpsSatellite;
 import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
@@ -25,6 +26,9 @@ import android.telephony.CellSignalStrengthWcdma;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Timer;
@@ -42,10 +46,12 @@ public class LocationService extends Service {
     static long elapsedSeconds;
     long utcTime;
     static Timer timer;
-    GpsStatus status;
+    int satellites;
+    LocationService activity;
 
     public LocationService() {
         startTime = SystemClock.elapsedRealtime();
+        activity = this;
     }
 
     public static void stopLocationUpdates() {
@@ -67,28 +73,24 @@ public class LocationService extends Service {
         //Get UTC time when service starts
         utcTime = System.currentTimeMillis();
 
+        satellites=0;
+
         locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 
         GPSListener = new GpsStatus.Listener() {
             @Override
             public void onGpsStatusChanged(final int event) {
-                Log.e(TAG, "---onGpsStatusChanged---");
-                switch (event) {
-                    case GpsStatus.GPS_EVENT_STARTED:
-                        Log.e(TAG, "GPS_EVENT_STARTED");
-                        break;
-                    case GpsStatus.GPS_EVENT_FIRST_FIX:
-                        Log.e(TAG, "GPS_EVENT_FIRST_FIX");
-                        break;
-                    case GpsStatus.GPS_EVENT_STOPPED:
-                        Log.e(TAG, "GPS_EVENT_STOPPED");
-                        break;
-                    case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
-                        Log.e(TAG, "GPS_EVENT_SATELLITE_STATUS");
-                        break;
-                    default:
-                        Log.e(TAG, "SOMETHING_ELSE");
-                        break;
+                int satellitesInfix=0;
+
+                if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                    Log.e(TAG, getString(R.string.permissions_notgranted_toast));
+
+                else {
+                    for (GpsSatellite sat : locationManager.getGpsStatus(null).getSatellites()) {
+                        if (sat.usedInFix())
+                            satellitesInfix++;
+                    }
+                    satellites = satellitesInfix;
                 }
             }
         };
@@ -99,15 +101,36 @@ public class LocationService extends Service {
                 float speed = location.getSpeed() * (18 / 5);
                 float accuracy = location.getAccuracy();
 
-                //Validate
-                if (speed > 5 && accuracy < 10) {
+                /* VALIDATE
+                 * Speed > 5kmph (checked in if condition)
+                 * Accuracy better than 10m (checked in if condition)
+                 * Currently has 5 satellites locked (checked in if condition)
+                 * moved 50m since last data (checked at locationManager.requestLocationUpdates)
+                 * GPS Provider is GPS Chip (Cannot be anything else since I'm using LocationManager.GPS_PROVIDER when requesting for location updates)
+                 */
+
+                Log.e(TAG, String.valueOf(speed));
+                Log.e(TAG, String.valueOf(accuracy));
+                Log.e(TAG, String.valueOf(satellites));
+
+                if (speed > 5 && accuracy < 10 && satellites>=5) {
                     double latitude = location.getLatitude();
                     double longitude = location.getLongitude();
-                    //accuracy//
-                    //Velocity = Speed + Direction (Velocity is a vector)
-                    String velocity = location.getSpeed()+","+location.getBearing();
-                    //utc time//
-                    double satellites;
+                    String velocity = location.getSpeed()+","+location.getBearing(); //Velocity = Speed + Direction (Velocity is a vector)
+                    double satellites = 0;
+
+                    JSONObject locationData = new JSONObject();
+                    try {
+                        locationData.put("latitude", latitude);
+                        locationData.put("longitude", longitude);
+                        locationData.put("accuracy", accuracy);
+                        locationData.put("velocity", velocity);
+                        locationData.put("utctime", System.currentTimeMillis());
+                        locationData.put("satellite_count", satellites);
+
+                    } catch (JSONException e) {
+                        Log.e(TAG, String.valueOf(e));
+                    }
 
                     //Write to file
                     try {
@@ -119,19 +142,19 @@ public class LocationService extends Service {
                         if(file.length()>1000000){
                             utcTime = SystemClock.elapsedRealtime();
                             filename = "location_"+utcTime;
-                            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
-                            outputStream.write("ASD".getBytes());
+                            outputStream = openFileOutput(filename, Context.MODE_APPEND);
+                            outputStream.write((locationData.toString()+"\n").getBytes());
                             outputStream.close();
                         }
 
                         else {
-                            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
-                            outputStream.write("ASD".getBytes());
+                            outputStream = openFileOutput(filename, Context.MODE_APPEND);
+                            outputStream.write((locationData.toString()+"\n").getBytes());
                             outputStream.close();
                         }
                     }
                     catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e(TAG, String.valueOf(e));
                     }
                 }
             }
@@ -150,40 +173,57 @@ public class LocationService extends Service {
         locationListenerIdle = new LocationListener() {
             public void onLocationChanged(Location location) {
                 float speed = location.getSpeed() * (18 / 5);
+                double accuracy = location.getAccuracy();
 
-                //Validate
-                if (speed < 5) {
+                Log.e("ASD", "IDLE");
+                Log.e(TAG, String.valueOf(speed));
+                Log.e(TAG, String.valueOf(accuracy));
+                Log.e(TAG, String.valueOf(satellites));
+
+                /*VALIDATE
+                 * Used same criteria as active mode
+                 */
+                if (speed < 5 && satellites>=5) {
                     double latitude = location.getLatitude();
                     double longitude = location.getLongitude();
-                    double accuracy = location.getAccuracy();
-                    //Velocity = Speed + Direction (Velocity is a vector)
-                    String velocity = location.getSpeed()+","+location.getBearing();
-                    //utc time//
-                    double satellites;
+                    String velocity = location.getSpeed()+","+location.getBearing();  //Velocity = Speed + Direction (Velocity is a vector)
+
+                    JSONObject locationData = new JSONObject();
+                    try {
+                        locationData.put("latitude", latitude);
+                        locationData.put("longitude", longitude);
+                        locationData.put("accuracy", accuracy);
+                        locationData.put("velocity", velocity);
+                        locationData.put("utctime", System.currentTimeMillis());
+                        locationData.put("satellite_count", satellites);
+
+                    } catch (JSONException e) {
+                        Log.e(TAG, String.valueOf(e));
+                    }
 
                     //Write to file
                     try {
-                        String filename =  "system_"+utcTime;
+                        String filename =  "location_"+utcTime;
                         File file = new File(getApplicationContext().getFilesDir(), filename);
                         FileOutputStream outputStream;
 
                         //If file length > 1mb, generate new UTC timestamp
                         if(file.length()>1000000){
                             utcTime = SystemClock.elapsedRealtime();
-                            filename = "system_"+utcTime;
-                            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
-                            outputStream.write("ASD".getBytes());
+                            filename = "location_"+utcTime;
+                            outputStream = openFileOutput(filename, Context.MODE_APPEND);
+                            outputStream.write((locationData.toString()+"\n").getBytes());
                             outputStream.close();
                         }
 
                         else {
-                            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
-                            outputStream.write("ASD".getBytes());
-                            outputStream.close();
+                            outputStream = openFileOutput(filename, Context.MODE_APPEND);
+                            outputStream.write((locationData.toString()+"\n").getBytes());
+                                outputStream.close();
                         }
                     }
                     catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e(TAG, String.valueOf(e));
                     }
                 }
             }
@@ -207,10 +247,10 @@ public class LocationService extends Service {
             locationManager.addGpsStatusListener(GPSListener);
 
             //Get location updates every 2 mins and 50m (Active Mode)
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, locationListenerActive);
+            //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, locationListenerActive);
 
             //Get location updates every 30 mins (Idle Mode)
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1800000, 0, locationListenerIdle);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListenerIdle);
 
             //Run task to write System Data (Battery% and Network status) to a file every 10 mins
             timer = new Timer();
@@ -302,7 +342,44 @@ public class LocationService extends Service {
             String networkType = getNetworkType();
             String operatorName = getSIMOperatorName();
 
-           // Log.e(TAG, batteryLevel+" "+cellStrength+" "+networkType+" "+operatorName);
+            JSONObject systemData = new JSONObject();
+
+            try {
+                systemData.put("battery_level", batteryLevel);
+                systemData.put("cell_strength", cellStrength);
+                systemData.put("network_type", networkType);
+                systemData.put("operator_name", operatorName);
+                systemData.put("utc_time", System.currentTimeMillis());
+            }
+
+            catch (JSONException e) {
+                Log.e(TAG, String.valueOf(e));
+            }
+
+            //Write to file
+            try {
+                String filename =  "system_"+utcTime;
+                File file = new File(getApplicationContext().getFilesDir(), filename);
+                FileOutputStream outputStream;
+
+                //If file length > 1mb, generate new UTC timestamp
+                if(file.length()>1000000){
+                    utcTime = SystemClock.elapsedRealtime();
+                    filename = "system_"+utcTime;
+                    outputStream = openFileOutput(filename, Context.MODE_APPEND);
+                    outputStream.write((systemData.toString()+"\n").getBytes());
+                    outputStream.close();
+                }
+
+                else {
+                    outputStream = openFileOutput(filename, Context.MODE_APPEND);
+                    outputStream.write((systemData.toString()+"\n").getBytes());
+                    outputStream.close();
+                }
+            }
+            catch (Exception e) {
+                Log.e(TAG, String.valueOf(e));
+            }
         }
     }
 }

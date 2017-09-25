@@ -5,6 +5,9 @@
     <dimen name="title_textSize">30sp</dimen>
     <dimen name="title_padding">5dp</dimen>
     <dimen name="detail_textSize">20sp</dimen>
+    <dimen name="note_textSize">10sp</dimen>
+    <dimen name="waypoint_details_textSize">15sp</dimen>
     <dimen name="status_text_paddingTop">10dp</dimen>
     <dimen name="status_text_paddingBottom">5dp</dimen>
+    <dimen name="files_listview_height">150dp</dimen>
 </resources>

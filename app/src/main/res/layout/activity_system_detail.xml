@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.numadic.test.SystemDetailActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/layout_padding">
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/layout_padding">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/detail_textSize"
+                    android:textStyle="bold"
+                    android:text="@string/battery_percentage_title"
+                    android:padding="@dimen/layout_padding"/>
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/battery_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/note_textSize"
+                    android:textColor="@color/colorBlack"
+                    android:id="@+id/legend_battery"
+                    android:paddingTop="@dimen/layout_padding"
+                    android:paddingLeft="@dimen/layout_padding"/>
+
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/layout_padding">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/detail_textSize"
+                    android:textStyle="bold"
+                    android:text="@string/signal_strength_title"
+                    android:padding="@dimen/layout_padding"/>
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/cellStrength_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/note_textSize"
+                    android:textColor="@color/colorBlack"
+                    android:id="@+id/legend_cellstrength"
+                    android:paddingTop="@dimen/layout_padding"
+                    android:paddingLeft="@dimen/layout_padding"/>
+
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/layout_padding"
+            android:layout_marginBottom="@dimen/layout_padding">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/detail_textSize"
+                    android:textStyle="bold"
+                    android:text="@string/network_type_title"
+                    android:padding="@dimen/layout_padding"/>
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/networkType_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/note_textSize"
+                    android:textColor="@color/colorBlack"
+                    android:id="@+id/legend_networktype"
+                    android:paddingTop="@dimen/layout_padding"
+                    android:paddingLeft="@dimen/layout_padding"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/note_textSize"
+                    android:textColor="@color/colorBlack"
+                    android:text="@string/networktype_chart_legend"
+                    android:paddingBottom="@dimen/layout_padding"
+                    android:paddingLeft="@dimen/layout_padding"/>
+
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+    </LinearLayout>
+</ScrollView>
