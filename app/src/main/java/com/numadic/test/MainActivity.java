@@ -20,6 +20,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,9 +41,11 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.service_time) TextView serviceTime;
     @BindView(R.id.location_files) ListView locationFiles;
     @BindView(R.id.system_files) ListView systemFiles;
-    Handler timeHandler;
-    Runnable time;
-    boolean network=false;
+    @BindView(R.id.start_btn) Button startBtn;
+    @BindView(R.id.stop_btn) Button stopBtn;
+    private Handler timeHandler;
+    private Runnable time;
+    private boolean network=false;
 
     final static String FILENAME = "filename";
     final static String LOCATION = "location";
@@ -55,6 +58,13 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.bind(this);
 
         updateServiceUI();
+        updateLocationFileUI();
+        updateSystemFileUI();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         updateLocationFileUI();
         updateSystemFileUI();
     }
@@ -101,9 +111,19 @@ public class MainActivity extends AppCompatActivity {
 
                         updateServiceUI();
                         Toast.makeText(this, getString(R.string.service_started_toast), Toast.LENGTH_SHORT).show();
+                        startBtn.setEnabled(false);
+                        stopBtn.setEnabled(true);
                     }
                 } else
                     Toast.makeText(this, getString(R.string.service_running_toast), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @OnClick(R.id.refresh_btn)
+    void RefreshButton(View view) {
+        if(view.getId() == R.id.refresh_btn) {
+            updateLocationFileUI();
+            updateSystemFileUI();
         }
     }
 
@@ -128,18 +148,12 @@ public class MainActivity extends AppCompatActivity {
                 updateServiceUI();
 
                 Toast.makeText(this, getString(R.string.service_stopped_toast), Toast.LENGTH_SHORT).show();
+                startBtn.setEnabled(true);
+                stopBtn.setEnabled(false);
             }
 
             else
                 Toast.makeText(this, getString(R.string.service_not_running), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @OnClick(R.id.refresh_btn)
-    void RefreshButton(View view) {
-        if (view.getId() == R.id.refresh_btn) {
-            updateLocationFileUI();
-            updateSystemFileUI();
         }
     }
 
@@ -193,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
 
             //Updates elapsed time of Service by continuously checking time in a new thread
             timeHandler = new Handler(getMainLooper());
-            timeHandler.postDelayed(time = new Runnable() {
+            time = new Runnable() {
                 @Override
                 public void run() {
                     LocationService.calculateTime();
@@ -206,7 +220,8 @@ public class MainActivity extends AppCompatActivity {
 
                     timeHandler.postDelayed(this, 1000);
                 }
-            }, 10);
+            };
+            timeHandler.postDelayed(time, 1000);
         }
     }
 

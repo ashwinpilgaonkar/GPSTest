@@ -44,10 +44,10 @@ public class LocationService extends Service {
     static LocationListener locationListenerIdle;
     static long startTime;
     static long elapsedSeconds;
-    long utcTime;
+    private long utcTime;
     static Timer timer;
-    int satellites;
-    LocationService activity;
+    private int satellites;
+    private LocationService activity;
 
     public LocationService() {
         startTime = SystemClock.elapsedRealtime();
@@ -74,9 +74,9 @@ public class LocationService extends Service {
         utcTime = System.currentTimeMillis();
 
         satellites=0;
-
         locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 
+        //Gets number of satellites used in fix
         GPSListener = new GpsStatus.Listener() {
             @Override
             public void onGpsStatusChanged(final int event) {
@@ -103,21 +103,17 @@ public class LocationService extends Service {
 
                 /* VALIDATE
                  * Speed > 5kmph (checked in if condition)
-                 * Accuracy better than 10m (checked in if condition)
+                 * Accuracy better than 10m (included in tolerance condition)
+                 * Tolerance 15m to 2m (checked in if condition)
                  * Currently has 5 satellites locked (checked in if condition)
                  * moved 50m since last data (checked at locationManager.requestLocationUpdates)
                  * GPS Provider is GPS Chip (Cannot be anything else since I'm using LocationManager.GPS_PROVIDER when requesting for location updates)
                  */
 
-                Log.e(TAG, String.valueOf(speed));
-                Log.e(TAG, String.valueOf(accuracy));
-                Log.e(TAG, String.valueOf(satellites));
-
-                if (speed > 5 && accuracy < 10 && satellites>=5) {
+                if (speed > 5 && accuracy>2 && accuracy<15 && satellites>=5) {
                     double latitude = location.getLatitude();
                     double longitude = location.getLongitude();
                     String velocity = location.getSpeed()+","+location.getBearing(); //Velocity = Speed + Direction (Velocity is a vector)
-                    double satellites = 0;
 
                     JSONObject locationData = new JSONObject();
                     try {
@@ -175,13 +171,9 @@ public class LocationService extends Service {
                 float speed = location.getSpeed() * (18 / 5);
                 double accuracy = location.getAccuracy();
 
-                Log.e("ASD", "IDLE");
-                Log.e(TAG, String.valueOf(speed));
-                Log.e(TAG, String.valueOf(accuracy));
-                Log.e(TAG, String.valueOf(satellites));
-
                 /*VALIDATE
                  * Used same criteria as active mode
+                 * Except, checking for minimum distance moved is not required in Idle mode
                  */
                 if (speed < 5 && satellites>=5) {
                     double latitude = location.getLatitude();
@@ -247,15 +239,15 @@ public class LocationService extends Service {
             locationManager.addGpsStatusListener(GPSListener);
 
             //Get location updates every 2 mins and 50m (Active Mode)
-            //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, locationListenerActive);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 120000, 50, locationListenerActive);
 
             //Get location updates every 30 mins (Idle Mode)
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListenerIdle);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1800000, 0, locationListenerIdle);
 
             //Run task to write System Data (Battery% and Network status) to a file every 10 mins
             timer = new Timer();
             WriteSystemDataTask writeSystemDataTask = new WriteSystemDataTask();
-            timer.scheduleAtFixedRate(writeSystemDataTask, 0, 1000);
+            timer.scheduleAtFixedRate(writeSystemDataTask, 0, 600000);
         }
 
         return START_STICKY;
@@ -314,7 +306,7 @@ public class LocationService extends Service {
                 }
                 //Sometimes when switching networks, getNetworkType() responds to changes faster than getAllCellInfo().get(0)
                 //Which throws a ClassCastException. In that case, return 0.
-                catch (ClassCastException e) {
+                catch (Exception e) {
                     return 0;
                 }
             }

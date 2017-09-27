@@ -3,10 +3,12 @@ package com.numadic.test;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -15,6 +17,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -34,6 +37,7 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 public class LocationDetailActivity extends AppCompatActivity implements OnMapReadyCallback, OnMarkerClickListener {
 
@@ -41,13 +45,18 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
     private final String TAG = "LocationDetailActivity";
 
     @BindView(R.id.waypoint_details_text) TextView waypointDetailsText;
+    @BindView(R.id.play_route_btn) Button playRoute;
+    private Handler playRouteHandler = new Handler();
+    private boolean routePlaying = false;
+    private Runnable routeRun;
 
-    ArrayList<Double> latitude = new ArrayList<>();
-    ArrayList<Double> longitude = new ArrayList<>();
-    ArrayList<Double> accuracy = new ArrayList<>();
-    ArrayList<String> velocity = new ArrayList<>();
-    ArrayList<String> utcTime = new ArrayList<>();
-    ArrayList<Double> satelliteCount = new ArrayList<>();
+    private ArrayList<Double> latitude = new ArrayList<>();
+    private ArrayList<Double> longitude = new ArrayList<>();
+    private ArrayList<Double> accuracy = new ArrayList<>();
+    private ArrayList<String> velocity = new ArrayList<>();
+    private ArrayList<String> utcTime = new ArrayList<>();
+    private ArrayList<Double> satelliteCount = new ArrayList<>();
+    private ArrayList<Marker> markersList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +68,43 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
         mapFragment.getMapAsync(this);
 
         getDatafromFile();
+    }
+
+    @OnClick(R.id.play_route_btn)
+    void playRouteButton(View view) {
+        if (view.getId() == R.id.play_route_btn) {
+
+            if(routePlaying) {
+                playRouteHandler.removeCallbacks(routeRun);
+                routePlaying = false;
+                playRoute.setText(getString(R.string.play_route_btn_text));
+            }
+
+            else {
+                routeRun = new Runnable() {
+                    int i = 0;
+
+                    @Override
+                    public void run() {
+                        routePlaying = true;
+                        playRoute.setText(getString(R.string.stop_route_btn_text));
+                        if (i < markersList.size()) {
+                            markersList.get(i).showInfoWindow();
+                            float zoom = mMap.getCameraPosition().zoom;
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude.get(i), longitude.get(i)), zoom));
+                            i++;
+                        } else {
+                            playRoute.setText(getString(R.string.play_route_btn_text));
+                            return;
+                        }
+
+                        playRouteHandler.postDelayed(this, 1000);
+                    }
+                };
+
+                playRouteHandler.postDelayed(routeRun, 1000);
+            }
+        }
     }
 
     private void getDatafromFile(){
@@ -104,10 +150,8 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        //API does not support more than 8 waypoints. It will result in a crash
-        if(latitude.size()<8) {
-
             MarkerOptions options = new MarkerOptions();
+            Marker marker;
 
             //Add markers to map
             for (int i = 0; i < latitude.size(); i++) {
@@ -118,32 +162,63 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
 
                     //Set colour of origin and destination waypoint as different from the others
                     if(i==0 || i==latitude.size()-1) {
-                        mMap.addMarker(options.position(locations)
+                        marker = mMap.addMarker(options.position(locations)
                                 .title("Waypoint " + (i + 1)));
+                        markersList.add(marker);
                     }
 
                     else {
-                        mMap.addMarker(options.position(locations)
-                                .title("Waypoint " + (i + 1)))
-                                .setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                        marker = mMap.addMarker(options.position(locations)
+                                .title("Waypoint " + (i + 1)));
+                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                        markersList.add(marker);
                     }
                 }
             }
 
-            String url = getMapsApiDirectionsUrl();
-            ReadTask downloadTask = new ReadTask();
-            downloadTask.execute(url);
+        //Hack to split requests if number of waypoints are > 8
+        //Google Services API (Free) has a limitation of 8 waypoints per request
+            if(latitude.size()>7) {
+                ArrayList<Double> lat;
+                ArrayList<Double> lon;
+
+                int iterations = latitude.size() / 7;
+                int start = 0;
+                int end = 7;
+
+                for (int j = 0; j <= iterations; j++) {
+                    lat = new ArrayList<>();
+                    lon = new ArrayList<>();
+                    for (int i = start; i < end; i++) {
+                        lat.add(latitude.get(i));
+                        lon.add(longitude.get(i));
+                    }
+                    String url = getMapsApiDirectionsUrl(lat, lon);
+                    ReadTask downloadTask = new ReadTask();
+                    downloadTask.execute(url);
+                    start = end - 1;
+                    if (end + 7 > latitude.size())
+                        end = latitude.size();
+
+                    else
+                        end = end + 7;
+
+                }
+            }
+
+            else {
+                String url = getMapsApiDirectionsUrl(latitude, longitude);
+                ReadTask downloadTask = new ReadTask();
+                downloadTask.execute(url);
+            }
 
             //Set camera to first waypoint as default
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude.get(0), longitude.get(0)), 13));
             mMap.setOnMarkerClickListener(this);
         }
 
-        else
-            Toast.makeText(this, getString(R.string.waypoints_error_toast), Toast.LENGTH_LONG).show();
-    }
+    private String getMapsApiDirectionsUrl(ArrayList<Double> latitude, ArrayList<Double> longitude) {
 
-    private String getMapsApiDirectionsUrl() {
         String waypoints = "waypoints=optimize:true|";
 
         for(int i=0; i<latitude.size(); i++)
@@ -168,8 +243,8 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
     public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
         //get marker position
         //getId returns a string in the format m<number>
-        //so get index 1 of the string (char) and convert it to int
-        int position = (marker.getId().charAt(1)-'0');
+        //so strip first character and convert the resultant substring to an Integer
+        int position = Integer.parseInt(marker.getId().substring(1));;
         String vel = velocity.get(position);
         String speed = vel.substring(0, vel.indexOf(','));
         String direction = vel.substring(vel.indexOf(',')+1);
@@ -189,7 +264,7 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
         marker.showInfoWindow();
 
         //Center camera to position of selected marker
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude.get(position), longitude.get(position)), 20));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude.get(position), longitude.get(position)), 17));
         return true;
     }
 
@@ -242,7 +317,7 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
             PolylineOptions polyLineOptions = null;
 
             // traverse through routes
-            for (int i = 0; i < routes.size(); i++) {
+            for (int i=0; i<routes.size(); i++) {
                 points = new ArrayList<>();
                 polyLineOptions = new PolylineOptions();
                 List<HashMap<String, String>> path = routes.get(i);
@@ -266,8 +341,11 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
             if(null == polyLineOptions)
                 Log.e(TAG, "Internet Connection problem");
 
-            else
+            else {
                 mMap.addPolyline(polyLineOptions);
+                //Enable Play route button once route has been set
+                playRoute.setEnabled(true);
+            }
         }
     }
 }

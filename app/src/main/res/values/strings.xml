@@ -9,8 +9,9 @@
 
     <string name="location_data_files_title">Location Data files</string>
     <string name="system_data_files_title">System Health Data files</string>
-    <string name="networktype_chart_legend">Y-Axis: \n1 = GSM\n2 = WCDMA\n3 = LTE</string>
     <string name="waypoint_details_text">Waypoint Details:</string>
+    <string name="play_route_btn_text">Play Route</string>
+    <string name="stop_route_btn_text">Stop</string>
     <string name="waypoints_error_toast">Error. This file contains too many waypoints.</string>
     <string name="network_connectivity_error_title">No Internet Connection</string>
     <string name="network_connectivity_error_message">Internet Connectivity is required to use this feature.</string>
@@ -19,6 +20,7 @@
     <string name="battery_percentage_title">Battery Percentage</string>
     <string name="signal_strength_title">Cellular Signal Strength</string>
     <string name="network_type_title">Network Type</string>
+    <string name="networktype_chart_legend">Y-Axis: \n1 = GSM\n2 = WCDMA\n3 = LTE</string>
 
     <string name="permissions_dialog_title">Permissions</string>
     <string name="permissions_dialog_message">Allow this app to access your location.</string>

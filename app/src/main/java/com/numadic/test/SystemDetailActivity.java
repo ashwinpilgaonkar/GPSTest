@@ -6,10 +6,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.TextView;
 
-import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,9 +34,9 @@ public class SystemDetailActivity extends AppCompatActivity {
     ArrayList<String> networkType = new ArrayList<>();
     ArrayList<String> utcTime = new ArrayList<>();
 
-    @BindView(R.id.battery_chart) BarChart batteryChart;
-    @BindView(R.id.cellStrength_chart) BarChart cellStrengthChart;
-    @BindView(R.id.networkType_chart) BarChart networkTypeChart;
+    @BindView(R.id.battery_chart) LineChart batteryChart;
+    @BindView(R.id.cellStrength_chart) LineChart cellStrengthChart;
+    @BindView(R.id.networkType_chart) LineChart networkTypeChart;
 
     @BindView(R.id.legend_battery) TextView batteryLegend;
     @BindView(R.id.legend_cellstrength) TextView cellStrengthLegend;
@@ -91,22 +91,21 @@ public class SystemDetailActivity extends AppCompatActivity {
     }
 
     private void showGraphs(){
-        BarData batteryData = new BarData(getXAxisValues(), getBatteryDataSet());
+        LineData batteryData = new LineData(getXAxisValues(), getBatteryDataSet());
         batteryChart.setDescription("Battery Percentage v/s Time");
         batteryChart.setData(batteryData);
         batteryChart.animateXY(2000, 2000);
         batteryChart.invalidate();
 
-        BarData cellStrengthData = new BarData(getXAxisValues(), getCellStrengthDataSet());
+        LineData cellStrengthData = new LineData(getXAxisValues(), getCellStrengthDataSet());
         cellStrengthChart.setDescription("Cellular Signal v/s Time");
         cellStrengthChart.getAxisLeft().setStartAtZero(false);
         cellStrengthChart.getAxisRight().setStartAtZero(false);
         cellStrengthChart.setData(cellStrengthData);
-        cellStrengthChart.setDrawValueAboveBar(false);
         cellStrengthChart.animateXY(2000, 2000);
         cellStrengthChart.invalidate();
 
-        BarData networkTypeData = new BarData(getXAxisValues(), getNetworkTypeDataSet());
+        LineData networkTypeData = new LineData(getXAxisValues(), getNetworkTypeDataSet());
         networkTypeChart.setDescription("Network Type v/s Time");
         networkTypeChart.setData(networkTypeData);
         networkTypeChart.animateXY(2000, 2000);
@@ -129,48 +128,49 @@ public class SystemDetailActivity extends AppCompatActivity {
         networkTypeLegend.setText("X-axis: "+"\n"+networkLegend);
     }
 
-    private ArrayList<BarDataSet> getBatteryDataSet() {
-        ArrayList<BarDataSet> dataSets = new ArrayList<>();
-        ArrayList<BarEntry> valueSet = new ArrayList<>();
+    private ArrayList<LineDataSet> getBatteryDataSet() {
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
+        ArrayList<Entry> valueSet = new ArrayList<>();
 
             for (int i = 0; i < batteryLevel.size(); i++) {
-                BarEntry v1e1 = new BarEntry(batteryLevel.get(i), i);
+                Entry v1e1 = new Entry(batteryLevel.get(i), i);
                 valueSet.add(v1e1);
             }
 
-            BarDataSet barDataSet = new BarDataSet(valueSet, "Battery %");
-            dataSets.add(barDataSet);
-            setColor(barDataSet);
+            LineDataSet lineDataSet = new LineDataSet(valueSet, "Battery %");
+            lineDataSet.setLineWidth(2);
+            dataSets.add(lineDataSet);
+            setColor(lineDataSet);
 
         return dataSets;
     }
 
-    private ArrayList<BarDataSet> getCellStrengthDataSet() {
-        ArrayList<BarDataSet> dataSets = new ArrayList<>();
-        ArrayList<BarEntry> valueSet = new ArrayList<>();
+    private ArrayList<LineDataSet> getCellStrengthDataSet() {
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
+        ArrayList<Entry> valueSet = new ArrayList<>();
 
         for(int i=0; i<cellStrength.size(); i++){
-            BarEntry v1e1 = new BarEntry(cellStrength.get(i), i);
+            Entry v1e1 = new Entry(cellStrength.get(i), i);
             valueSet.add(v1e1);
         }
 
-        BarDataSet barDataSet = new BarDataSet(valueSet, "Cell Strength (dbm)");
-
-        dataSets.add(barDataSet);
-        setColor(barDataSet);
+        LineDataSet lineDataSet = new LineDataSet(valueSet, "Cell Strength (dbm)");
+        lineDataSet.setLineWidth(2);
+        dataSets.add(lineDataSet);
+        setColor(lineDataSet);
 
         return dataSets;
     }
 
-    private ArrayList<BarDataSet> getNetworkTypeDataSet() {
-        ArrayList<BarDataSet> dataSets = new ArrayList<>();
-        ArrayList<BarEntry> valueSet = new ArrayList<>();
+    private ArrayList<LineDataSet> getNetworkTypeDataSet() {
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
+        ArrayList<Entry> valueSet = new ArrayList<>();
 
         for(int i=0; i<networkType.size(); i++){
 
-            String entry = networkType.get(i);
+            String Entry = networkType.get(i);
             int type;
-            switch (entry){
+            switch (Entry){
                 case "GSM": type=1;
                     break;
                 case "WCDMA": type=2;
@@ -180,15 +180,14 @@ public class SystemDetailActivity extends AppCompatActivity {
                 default: type=0;
             }
 
-            BarEntry v1e1 = new BarEntry(type, i);
+            Entry v1e1 = new Entry(type, i);
             valueSet.add(v1e1);
         }
 
-        BarDataSet barDataSet = new BarDataSet(valueSet, "Network Type (2G/3G/4G)");
-
-        dataSets.add(barDataSet);
-        setColor(barDataSet);
-
+        LineDataSet lineDataSet = new LineDataSet(valueSet, "Network Type (2G/3G/4G)");
+        lineDataSet.setLineWidth(2);
+        dataSets.add(lineDataSet);
+        setColor(lineDataSet);
         return dataSets;
     }
 
@@ -201,11 +200,11 @@ public class SystemDetailActivity extends AppCompatActivity {
         return xAxis;
     }
 
-    private void setColor(BarDataSet barDataSet){
+    private void setColor(LineDataSet LineDataSet){
 
         //Random colour generator
         Random rnd = new Random();
         int color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-        barDataSet.setColor(color);
+        LineDataSet.setColor(color);
     }
 }
