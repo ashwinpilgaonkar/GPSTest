@@ -69,6 +69,23 @@ public class MainActivity extends AppCompatActivity {
         updateSystemFileUI();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        //Enable/Disable start and stop buttons according to service status
+        if(!isServiceRunning(LocationService.class)) {
+            startBtn.setEnabled(true);
+            stopBtn.setEnabled(false);
+        }
+
+        else {
+            startBtn.setEnabled(false);
+            stopBtn.setEnabled(true);
+        }
+
+    }
+
     @OnClick(R.id.start_btn)
     void StartButton(View view) {
         if (view.getId() == R.id.start_btn) {

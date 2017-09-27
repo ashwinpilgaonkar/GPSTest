@@ -1,6 +1,7 @@
 package com.numadic.test;
 
 import android.graphics.Color;
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -254,10 +255,22 @@ public class LocationDetailActivity extends AppCompatActivity implements OnMapRe
         calendar.setTimeInMillis(Long.parseLong(utcTime.get(position)));
         Date date = calendar.getTime();
 
+        //Calculate Distance from start to end of file
+        Location startPoint = new Location("LocationA");
+        startPoint.setLatitude(latitude.get(0));
+        startPoint.setLongitude(longitude.get(0));
+
+        Location endPoint = new Location("locationB");
+        endPoint.setLatitude(latitude.get(latitude.size()-1));
+        endPoint.setLongitude(longitude.get(latitude.size()-1));
+
+        double distance=startPoint.distanceTo(endPoint);
+
         String waypointText = "Waypoint "+(position+1)+": "
                             +"\n"+"Latitute: "+latitude.get(position)
                             +"\n"+"Longitude: "+longitude.get(position)
                             +"\n"+"Speed: "+speed+" km/h"
+                            +"\n"+"Total Distance: "+distance+" m"
                             +"\n"+date;
         waypointDetailsText.setText(waypointText);
         marker.setSnippet("Direction: "+direction+" degrees");
